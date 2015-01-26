@@ -1,0 +1,28 @@
+<!doctype html>
+
+<html>
+
+<head>
+	<title>Template</title>
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta charset="utf-8">
+	<link rel="stylesheet" href="resources/css/reset.css">
+	<style>
+		body {
+			text-align: center;
+		}
+		div {
+			display: none;
+		}		
+{{styles}}
+		@media (min-width:{{maxBreakpoint}}px) {
+			#b{{maxBreakpoint}} { display: block; }
+		}
+	</style>
+</head>
+
+<body>
+{{html}}
+</body>
+
+</html>
