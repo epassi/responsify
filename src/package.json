@@ -1,7 +1,11 @@
 {
-  "name": "epbp",
+  "name": "responsify",
   "version": "1.0.0",
-  "description": "Prototype boilerplate.",
+  "description": "Template for creating a single responsive page from a set of layout comps or wireframes.",
+  "repository": { 
+    "type" : "git", 
+    "url" : "http://github.com/epassi/responsify.git"
+  },
   "author": "Emilio Passi",
   "devDependencies": {
     "grunt": "^0.4.5",
