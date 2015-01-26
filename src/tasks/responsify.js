@@ -14,6 +14,7 @@ module.exports = function ( grunt ) {
 
   grunt.registerMultiTask( 'responsify', 'generates a responsive prototype from layout comps/wireframes', function () {
 		var templateHTML = grunt.file.read("resources/partials/template.html");
+		_breakpoints = [];
 		grunt.file.recurse("layouts/", onTraverseFile);
 		_breakpoints.sort(function(a,b){return a-b;});
 
