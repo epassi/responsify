@@ -23,13 +23,13 @@ module.exports = function(grunt) {
 						"./layouts/**",
 						"./resources/css/**/*.css" 
 						],		// The files to copy
-				dest: "../dist",		// Destination folder
+				dest: "./dist",		// Destination folder
 				expand: true		// Enables these options. Required when using cwd.
 			},
 		},
 		clean: {
 			build: {
-				src: [ '../dist' ],
+				src: [ './dist' ],
 				options: {
 					force: true
 				}
@@ -38,15 +38,15 @@ module.exports = function(grunt) {
 		browserSync: {
 			dev: {
 				bsFiles: {
-					src: [	"../dist/**/*.html",
-							"../dist/resources/css/**",
-							"../dist/layouts/**"
+					src: [	"./dist/**/*.html",
+							"./dist/resources/css/**",
+							"./dist/layouts/**"
 							]
 				},
 				options: {
 					server: {
 						// baseDir: "./" // src build
-						baseDir: "../dist/" // dist build
+						baseDir: "./dist/" // dist build
 					},
 					watchTask: true
 				}
