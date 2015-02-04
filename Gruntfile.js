@@ -20,7 +20,7 @@ module.exports = function(grunt) {
 			build: {
 				cwd: ".",			// Source folder
 				src: [	"./*.html",
-						"./layouts/**",
+						"./resources/img/**/*.png",
 						"./resources/css/**/*.css" 
 						],		// The files to copy
 				dest: "./dist",		// Destination folder
@@ -40,7 +40,7 @@ module.exports = function(grunt) {
 				bsFiles: {
 					src: [	"./dist/**/*.html",
 							"./dist/resources/css/**",
-							"./dist/layouts/**"
+							"./dist/resources/img/**"
 							]
 				},
 				options: {
