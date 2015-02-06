@@ -16,7 +16,8 @@ You'll need to install this software before using Responsify. This has been test
 `brew install graphicsmagick`
 
 ###Using Responsify
-1. Create your new site by cloning this repository: `git clone http://github.com/epassi/responsify "My Prototype"`
+1. Create your new site by cloning this repository:  
+`git clone http://github.com/epassi/responsify "My Prototype"`
 2. Gather your layout comps or wireframes and name the files using their corresponing breakpoint. Example: 320.png, 600.png, 900.png, etc. **PNG format only.**
 3. Run `npm install`.
 4. Run `grunt`. Build preview will open in browser.
