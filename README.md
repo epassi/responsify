@@ -7,10 +7,13 @@ At the moment, you can generate only one page. Future versions aim to generate m
 ###Required software
 You'll need to install this software before using Responsify. This has been tested on Mac OS only. 
 
-1. [Node.js](http://http://nodejs.org/).
-2. [Grunt](http://gruntjs.com/) command line interface (CLI) via terminal: `npm install -g grunt-cli`.
-3. [Homebrew](http://brew.sh/) package manager via terminal: `ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"`.
-4. [GraphicsMagick](http://www.graphicsmagick.org/) image processor via terminal: `brew install graphicsmagick`.
+1. [Node.js](http://http://nodejs.org/) runtime
+2. [Grunt](http://gruntjs.com/) command line interface (CLI) via terminal:  
+`npm install -g grunt-cli`
+3. [Homebrew](http://brew.sh/) package manager via terminal:  
+`ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"`
+4. [GraphicsMagick](http://www.graphicsmagick.org/) image processor via terminal:  
+`brew install graphicsmagick`
 
 ###Using Responsify
 1. Create your new site by cloning this repository 
