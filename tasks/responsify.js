@@ -16,33 +16,23 @@ module.exports = function ( grunt ) {
 	// creation: http://gruntjs.com/creating-tasks
 
   	grunt.registerMultiTask( 'responsify', 'generates a responsive prototype from layout comps/wireframes', function () {
+		var templateHTML = grunt.file.read("resources/partials/template.html");
+
+		// Force synchronous flow.
+		// Don't allow next grunt task to start until this one is finished.
 		done = this.async();
 
+		// Get breakpoints.
 		resetLayouts();
 		grunt.file.recurse("layouts/", traverseFile);
 		_breakpoints.sort(function(a,b){return a-b;});
 
-
-		// var count = 0;
-		// async.whilst(
-		// 	function() {return count < 5;},
-		// 	function(callback) {
-		// 		count++;
-		// 		callback();
-		// 	},
-		// 	function(err) {
-		// 		grunt.log.writeln("end of whilst, count = " + count);
-		// 	}
-		// );
-
+		// Create image slices out of the layouts.
 		async.each(_breakpoints, processBreakpoint, onComplete);
 
-		var templateHTML = grunt.file.read("resources/partials/template.html");
-
-
+		// Generate the HTML file.
 		_html = getLayoutHTML();
 		_css = getLayoutCSS();
-
 		templateHTML = templateHTML.replace(/{{styles}}/g, _css);
 		templateHTML = templateHTML.replace(/{{maxBreakpoint}}/g, _breakpoints[_breakpoints.length-1]);
 		templateHTML = templateHTML.replace(/{{html}}/g, _html);
@@ -56,10 +46,6 @@ module.exports = function ( grunt ) {
 	}
 
 	function processBreakpoint(breakpoint, callbackBreakpointsComplete) {
-		// for (var i = 0; i < _breakpoints.length; i++) {
-		// 	createSlices(_breakpoints[i]);
-		// }
-
 		var i = 0;
 		async.whilst(
 			function () {return i < _breakpoints.length;},
@@ -77,8 +63,6 @@ module.exports = function ( grunt ) {
 		grunt.log.writeln("everything done");
 		done(true);
 	}
-
-
 
 
 	function traverseFile(abspath, rootdir, subdir, filename) {
@@ -111,25 +95,6 @@ module.exports = function ( grunt ) {
 			var sliceHeight = Math.ceil(height / sliceCount);
 
 			var i = 1;
-			// for (var y = 0; y < height; y+=sliceHeight) {
-			// 	var slice = gm(abspath).crop(width, sliceHeight, 0, y);
-			// 	var croppedFilename = "resources/img/" + getFilenameBase(filename) + "_" + i++ + ".png";
-
-			// 	// Create img folder if it doesn't already exist.
-			// 	if (!grunt.file.exists("resources/img")) {
-			// 		grunt.file.mkdir("resources/img");
-			// 	}
-
-			// 	slice.quality(100).write(croppedFilename, function(err) {
-			// 		if (err) {
-			// 			grunt.fail.warn(err.message);
-			// 		} else {
-			// 			grunt.log.ok(filename + " sliced.");
-			// 		}
-			// 	});
-			// }
-
-
 			var y = 0;
 			async.whilst(
 				function() {return y < height;},
