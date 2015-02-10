@@ -17,7 +17,7 @@ module.exports = function ( grunt ) {
 	// creation: http://gruntjs.com/creating-tasks
 
   	grunt.registerMultiTask( 'responsify', 'generates a responsive prototype from layout comps/wireframes', function () {
-		var pageTemplate = grunt.file.read("resources/partials/template.html");
+		// var pageTemplate = grunt.file.read("resources/partials/template.html");
 
 		// Force synchronous flow.
 		// Don't allow next grunt task to start until this one is finished.
@@ -49,6 +49,7 @@ module.exports = function ( grunt ) {
 	}
 
 	function processLayout(title, callbackLayoutsComplete) {
+		var pageTemplate = grunt.file.read("resources/partials/template.html");
 		var breakpoints = _layouts[title];
 		var html = "";
 		var css = "";
@@ -56,21 +57,20 @@ module.exports = function ( grunt ) {
 		async.whilst(
 			function () {return i < breakpoints.length;},
 			function (callback) {
-				createSlices(title, breakpoints[i], callback);
+				createSlices(title, breakpoints[i++], callback);
 				// processBreakpoint(title, breakpoints[i++], callback)
 				// createSlices(_breakpoints[i++], callback);
-
-				// Generate the HTML file.
-				html = getHtmlForLayout(title, breakpoints[i]);
-				css = getCssForLayout(title, breakpoints[i]);
-				pageTemplate = pageTemplate.replace(/{{styles}}/g, css);
-				pageTemplate = pageTemplate.replace(/{{maxBreakpoint}}/g, breakpoints[breakpoints.length-1]);
-				// pageTemplate = pageTemplate.replace(/{{maxBreakpoint}}/g, _breakpoints[_breakpoints.length-1]);
-				pageTemplate = pageTemplate.replace(/{{html}}/g, html);
-				grunt.file.write(title + ".html", pageTemplate);
-				i++;
 			},
 			function (err) {
+				// Generate the HTML file.
+				html = getHtml(title, breakpoints);
+				css = getCss(title, breakpoints);
+				pageTemplate = pageTemplate.replace(/{{title}}/g, title);
+				pageTemplate = pageTemplate.replace(/{{styles}}/g, css);
+				pageTemplate = pageTemplate.replace(/{{maxBreakpoint}}/g, breakpoints[breakpoints.length-1]);
+				pageTemplate = pageTemplate.replace(/{{html}}/g, html);
+				grunt.file.write(title + ".html", pageTemplate);
+
 				callbackLayoutsComplete();
 			}
 		);
@@ -195,11 +195,26 @@ module.exports = function ( grunt ) {
 	}
 
 
-	function getHtmlForLayout(title, breakpoint) {
-		var html = _htmlTemplate;
-		var filenameBase = title + "@" + breakpoint;
-		html = html.replace(/{{breakpoint}}/g, breakpoint);
-		html = html.replace(/{{filenameBase}}/g, filenameBase);
+	// function getHtmlForLayout(title, breakpoint) {
+	// 	var html = _htmlTemplate;
+	// 	var filenameBase = title + "@" + breakpoint;
+	// 	html = html.replace(/{{breakpoint}}/g, breakpoint);
+	// 	html = html.replace(/{{filenameBase}}/g, filenameBase);
+
+	// 	return html;
+	// }
+
+
+	function getHtml(title, breakpoints) {
+		var html = "";
+		var filenameBase = "";
+
+		for (var i = 0; i < breakpoints.length; i++) {
+			filenameBase = title + "@" + breakpoints[i];
+			html += _htmlTemplate;
+			html = html.replace(/{{breakpoint}}/g, breakpoints[i]);
+			html = html.replace(/{{filenameBase}}/g, filenameBase);
+		}
 
 		return html;
 	}
@@ -217,16 +232,30 @@ module.exports = function ( grunt ) {
 	// 	return html;
 	// }
 
-	function getCssForLayout(title, breakpoint) {
+	// function getCssForLayout(title, breakpoint, breakpointIndex) {
+	// 	var css = _cssTemplate;
+	// 	var breakpointMin = 0;
+	// 	var breakpointMax = 0;
+
+	// 	breakpointMin = (breakpointIndex===0 ? 0 : breakpoint);
+	// 	breakpointMax = _layouts[title][breakpointIndex+1] - 1;
+	// 	css = css.replace(/{{breakpoint}}/g, _breakpoints[i]);
+	// 	css = css.replace(/{{breakpointMin}}/g, breakpointMin);
+	// 	css = css.replace(/{{breakpointMax}}/g, breakpointMax);
+		
+	// 	return css;
+	// }
+
+	function getCss(title, breakpoints) {
 		var css = "";
 		var breakpointMin = 0;
 		var breakpointMax = 0;
 
-		for (var i = 0; i < _breakpoints.length-1; i++) {
-			breakpointMin = (i===0 ? 0 : _breakpoints[i]);
-			breakpointMax = _breakpoints[i+1] - 1;
+		for (var i = 0; i < breakpoints.length-1; i++) {
+			breakpointMin = (i===0 ? 0 : breakpoints[i]);
+			breakpointMax = breakpoints[i+1] - 1;
 			css += _cssTemplate;
-			css = css.replace(/{{breakpoint}}/g, _breakpoints[i]);
+			css = css.replace(/{{breakpoint}}/g, breakpoints[i]);
 			css = css.replace(/{{breakpointMin}}/g, breakpointMin);
 			css = css.replace(/{{breakpointMax}}/g, breakpointMax);
 		}
