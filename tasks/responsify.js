@@ -5,9 +5,9 @@ var async = require("async");
 var done;
 
 module.exports = function ( grunt ) {
-	var _layouts = {};
-	var _htmlTemplate = grunt.file.read("resources/partials/layout.html");
-	var _cssTemplate = grunt.file.read("resources/partials/layout.css");
+	var _pages = {};
+	var _htmlTemplate = grunt.file.read("resources/partials/page-layout.html");
+	var _cssTemplate = grunt.file.read("resources/partials/page-layout.css");
 
 	// Please see the Grunt documentation for more information regarding task
 	// creation: http://gruntjs.com/creating-tasks
@@ -22,17 +22,17 @@ module.exports = function ( grunt ) {
 		grunt.file.recurse("layouts/", traverseFile);
 
 		// Create image slices out of the layouts.
-		async.each(Object.keys(_layouts), processLayout, onComplete);
+		async.each(Object.keys(_pages), processPage, onComplete);
   	});
 
 	function resetLayouts() {
-		_layouts = {};
+		_pages = {};
 		grunt.file.delete("resources/img");
 	}
 
-	function processLayout(title, callbackLayoutsComplete) {
-		var pageTemplate = grunt.file.read("resources/partials/template.html");
-		var breakpoints = _layouts[title];
+	function processPage(title, callbackLayoutsComplete) {
+		var pageTemplate = grunt.file.read("resources/partials/page.html");
+		var breakpoints = _pages[title];
 		var html = "";
 		var css = "";
 		var i = 0;
@@ -57,6 +57,7 @@ module.exports = function ( grunt ) {
 	}
 
 	function onComplete(err) {
+		writeIndexFile();
 		grunt.log.writeln("everything done");
 		done(true);
 	}
@@ -65,13 +66,13 @@ module.exports = function ( grunt ) {
 	function traverseFile(abspath, rootdir, subdir, filename) {
 		var layoutInfo = getLayoutInfo(filename)
 		if (layoutInfo) {
-			if (_layouts[layoutInfo.title]) {
-				_layouts[layoutInfo.title].push(layoutInfo.breakpoint);
-				_layouts[layoutInfo.title].sort(function(a,b){return a-b;});
+			if (_pages[layoutInfo.title]) {
+				_pages[layoutInfo.title].push(layoutInfo.breakpoint);
+				_pages[layoutInfo.title].sort(function(a,b){return a-b;});
 			} else {
-				_layouts[layoutInfo.title] = [layoutInfo.breakpoint];
+				_pages[layoutInfo.title] = [layoutInfo.breakpoint];
 			}
-			grunt.log.ok(layoutInfo.title + " " + _layouts[layoutInfo.title].join());
+			grunt.log.ok(layoutInfo.title + " " + _pages[layoutInfo.title].join());
 		}
 	}
 
@@ -183,6 +184,23 @@ module.exports = function ( grunt ) {
 		}
 
 		return css;
+	}
+
+	function writeIndexFile() {
+		var indexFile = grunt.file.read("resources/partials/index.html");
+		var htmlForPages = "";
+
+		for (var title in _pages) {
+			var breakpoints = _pages[title];
+			var htmlSnippet = grunt.file.read("resources/partials/index-page.html");
+			htmlSnippet = htmlSnippet.replace(/{{title}}/g, title);
+			htmlSnippet = htmlSnippet.replace(/{{breakpoints}}/g, breakpoints.join());
+			htmlForPages += htmlSnippet;
+		}
+
+		// grunt.log.writeln(__dirname);
+		indexFile = indexFile.replace(/{{pages}}/g, htmlForPages);
+		grunt.file.write("index.html", indexFile);
 	}
 
 	function isNumber(string) {
