@@ -28,7 +28,7 @@ module.exports = function ( grunt ) {
 		_breakpoints.sort(function(a,b){return a-b;});
 
 		// Create image slices out of the layouts.
-		async.each(_breakpoints, processBreakpoint, onComplete);
+		async.each(_breakpoints, createSlices, onComplete);
 
 		// Generate the HTML file.
 		_html = getLayoutHTML();
@@ -45,25 +45,10 @@ module.exports = function ( grunt ) {
 		grunt.file.delete("resources/img");
 	}
 
-	function processBreakpoint(breakpoint, callbackBreakpointsComplete) {
-		var i = 0;
-		async.whilst(
-			function () {return i < _breakpoints.length;},
-			function (callback) {
-				createSlices(_breakpoints[i++], callback);
-
-			},
-			function (err) {
-				callbackBreakpointsComplete();
-			}
-		);
-	}
-
 	function onComplete(err) {
 		grunt.log.writeln("everything done");
 		done(true);
 	}
-
 
 	function traverseFile(abspath, rootdir, subdir, filename) {
 		var filenameBase = getFilenameBase(filename);
