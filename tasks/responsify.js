@@ -30,6 +30,7 @@ module.exports = function ( grunt ) {
 
 	function resetLayouts() {
 		_pages = {};
+		grunt.file.delete("resources/pages");
 		grunt.file.delete("resources/img");
 	}
 
@@ -52,7 +53,7 @@ module.exports = function ( grunt ) {
 				pageTemplate = pageTemplate.replace(/{{styles}}/g, css);
 				pageTemplate = pageTemplate.replace(/{{maxBreakpoint}}/g, breakpoints[breakpoints.length-1]);
 				pageTemplate = pageTemplate.replace(/{{html}}/g, html);
-				grunt.file.write(title + ".html", pageTemplate);
+				grunt.file.write("resources/pages/" + title + ".html", pageTemplate);
 
 				callbackLayoutsComplete();
 			}
