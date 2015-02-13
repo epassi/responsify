@@ -6,8 +6,11 @@ var done;
 
 module.exports = function ( grunt ) {
 	var _pages = {};
-	var _htmlTemplate = grunt.file.read("resources/partials/page-layout.html");
-	var _cssTemplate = grunt.file.read("resources/partials/page-layout.css");
+	var _indexHtmlTemplate = grunt.file.read("resources/templates/index.html");
+	var _prototypeHtmlTemplate = grunt.file.read("resources/templates/prototype.html");
+	var _htmlTableRowPartial = grunt.file.read("resources/partials/index-table-row.html");
+	var _htmlLayoutDivPartial = grunt.file.read("resources/partials/prototype-layout-div.html")
+	var _cssMediaQueryPartial = grunt.file.read("resources/partials/prototype-media-query.css");
 
 	// Please see the Grunt documentation for more information regarding task
 	// creation: http://gruntjs.com/creating-tasks
@@ -31,7 +34,7 @@ module.exports = function ( grunt ) {
 	}
 
 	function processPage(title, callbackLayoutsComplete) {
-		var pageTemplate = grunt.file.read("resources/partials/page.html");
+		var pageTemplate = _prototypeHtmlTemplate;
 		var breakpoints = _pages[title];
 		var html = "";
 		var css = "";
@@ -43,8 +46,8 @@ module.exports = function ( grunt ) {
 			},
 			function (err) {
 				// Generate the HTML file.
-				html = getHtml(title, breakpoints);
-				css = getCss(title, breakpoints);
+				html = getHtmlLayoutDivs(title, breakpoints);
+				css = getCssMediaQueries(title, breakpoints);
 				pageTemplate = pageTemplate.replace(/{{title}}/g, title);
 				pageTemplate = pageTemplate.replace(/{{styles}}/g, css);
 				pageTemplate = pageTemplate.replace(/{{maxBreakpoint}}/g, breakpoints[breakpoints.length-1]);
@@ -155,52 +158,54 @@ module.exports = function ( grunt ) {
 		});
 	}
 
-	function getHtml(title, breakpoints) {
-		var html = "";
+	function getHtmlLayoutDivs(title, breakpoints) {
+		var htmlLayoutDivs = "";
 		var filenameBase = "";
 
 		for (var i = 0; i < breakpoints.length; i++) {
 			filenameBase = title + "@" + breakpoints[i];
-			html += _htmlTemplate;
-			html = html.replace(/{{breakpoint}}/g, breakpoints[i]);
-			html = html.replace(/{{filenameBase}}/g, filenameBase);
+			htmlLayoutDivs += _htmlLayoutDivPartial;
+			htmlLayoutDivs = htmlLayoutDivs.replace(/{{breakpoint}}/g, breakpoints[i]);
+			htmlLayoutDivs = htmlLayoutDivs.replace(/{{filenameBase}}/g, filenameBase);
 		}
 
-		return html;
+		return htmlLayoutDivs;
 	}
 
-	function getCss(title, breakpoints) {
-		var css = "";
+	function getCssMediaQueries(title, breakpoints) {
+		var cssMediaQueries = "";
 		var breakpointMin = 0;
 		var breakpointMax = 0;
 
 		for (var i = 0; i < breakpoints.length-1; i++) {
 			breakpointMin = (i===0 ? 0 : breakpoints[i]);
 			breakpointMax = breakpoints[i+1] - 1;
-			css += _cssTemplate;
-			css = css.replace(/{{breakpoint}}/g, breakpoints[i]);
-			css = css.replace(/{{breakpointMin}}/g, breakpointMin);
-			css = css.replace(/{{breakpointMax}}/g, breakpointMax);
+			cssMediaQueries += _cssMediaQueryPartial;
+			cssMediaQueries = cssMediaQueries.replace(/{{breakpoint}}/g, breakpoints[i]);
+			cssMediaQueries = cssMediaQueries.replace(/{{breakpointMin}}/g, breakpointMin);
+			cssMediaQueries = cssMediaQueries.replace(/{{breakpointMax}}/g, breakpointMax);
 		}
 
-		return css;
+		return cssMediaQueries;
 	}
 
 	function writeIndexFile() {
-		var indexFile = grunt.file.read("resources/partials/index.html");
-		var htmlForPages = "";
+		var indexHtml = _indexHtmlTemplate;
+		var indexTableRows = "";
+		var cwd = process.cwd().split("/");
+		var project = cwd.pop();
 
 		for (var title in _pages) {
 			var breakpoints = _pages[title];
-			var htmlSnippet = grunt.file.read("resources/partials/index-page.html");
-			htmlSnippet = htmlSnippet.replace(/{{title}}/g, title);
-			htmlSnippet = htmlSnippet.replace(/{{breakpoints}}/g, breakpoints.join());
-			htmlForPages += htmlSnippet;
+			var indexTableRowHtml = _htmlTableRowPartial;
+			indexTableRowHtml = indexTableRowHtml.replace(/{{title}}/g, title);
+			indexTableRowHtml = indexTableRowHtml.replace(/{{breakpoints}}/g, breakpoints.join().replace(/\,/g, ", "));
+			indexTableRows += indexTableRowHtml;
 		}
 
-		// grunt.log.writeln(__dirname);
-		indexFile = indexFile.replace(/{{pages}}/g, htmlForPages);
-		grunt.file.write("index.html", indexFile);
+		indexHtml = indexHtml.replace(/{{project}}/g, project);
+		indexHtml = indexHtml.replace(/{{pages}}/g, indexTableRows);
+		grunt.file.write("index.html", indexHtml);
 	}
 
 	function isNumber(string) {
