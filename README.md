@@ -1,8 +1,6 @@
 #Responsify
 
-Created for designers, this repository serves as a template for generating a single responsive page from a set of layout comps or wireframes. Helpful for simulating a responsive layout.
-
-At the moment, you can generate only one page. Future versions aim to generate multiple pages.
+Created for designers, this repository serves as a template for generating responsive pages from a set of layout comps or wireframes. Helpful for simulating responsive layouts.
 
 ###Required software
 You'll need to install this software before using Responsify. This has been tested on Mac OS only. 
@@ -16,7 +14,7 @@ You'll need to install this software before using Responsify. This has been test
 `brew install graphicsmagick`
 
 ###Using Responsify
-1. Gather your layout comps or wireframes and name the files using their corresponing breakpoint. Example: 320.png, 600.png, 900.png, etc. **PNG format only.**
+1. Gather your layout comps or wireframes and name the files using their corresponing breakpoint. Example: Home@320.png, Home@600.png, Home@900.png, etc. **PNG format only.**
 2. Create your new site by cloning this repository:  
 `git clone http://github.com/epassi/responsify "My Prototype"`
 3. Run `npm install`.
