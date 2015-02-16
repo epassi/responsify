@@ -1,4 +1,5 @@
 // README
+// http://gruntjs.com/configuring-tasks
 // http://ericnish.io/blog/compile-less-files-with-grunt
 // http://www.sitepoint.com/writing-awesome-build-script-grunt/
 // http://www.smashingmagazine.com/2013/10/29/get-up-running-grunt/
@@ -8,16 +9,17 @@ module.exports = function(grunt) {
 
 	grunt.initConfig({
 	    responsify: {
-	      default_options: {
-	        options: {
-	        },
-	        files: {
-	          'tmp/default_options': ['test/fixtures/testing', 'test/fixtures/123']
-	        }
-	      }
+	      	default: {
+		        options: {
+		        },
+		        src: ["layouts/*.png"],
+		        files: {
+		          'tmp/default_options': ['test/fixtures/testing', 'test/fixtures/123']
+		        }
+			}
 	    },
 		copy: {
-			build: {
+			default: {
 				cwd: ".",			// Source folder
 				src: [	"./*.html",
 						"./resources/pages/**/*.html",
@@ -29,7 +31,7 @@ module.exports = function(grunt) {
 			},
 		},
 		clean: {
-			build: {
+			default: {
 				src: [ './dist' ],
 				options: {
 					force: true
@@ -37,7 +39,7 @@ module.exports = function(grunt) {
 			},
 		},
 		browserSync: {
-			dev: {
+			default: {
 				bsFiles: {
 					src: [	"./dist/**/*.html",
 							"./dist/resources/css/**",
@@ -54,11 +56,12 @@ module.exports = function(grunt) {
 			}
 		},
 		watch: {
-			layouts: {
+			default: {
 				files: ["layouts/**"],
 				tasks: ["responsify", "clean", "copy"],
 				options: {
-					nospawn: true
+					// nospawn: true
+					spawn: false
 				}
 			}
 		}
