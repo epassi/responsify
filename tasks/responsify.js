@@ -1,3 +1,43 @@
+/*
+
+For all reported files from watch task, normalize titles.
+Evaluate if title is new or existing.
+
+Add
+- new layouts to existing page
+		Delete page (slices, HTML).
+		Create new page (slices, HTML).
+		Recreate index.html based on entire page map.
+- layouts for a new page
+		Create new page (slices, HTML).
+		Recreate index.html based on entire page map.
+
+Change
+- layouts for existing page
+		Delete page (slices, HTML).
+		Create new page (slices, HTML).
+		Recreate index.html based on entire page map.
+
+Delete
+- layouts from existing page
+		Delete page (slices, HTML).
+		Create new page (slices, HTML).
+		Recreate index.html based on entire page map.
+
+
+1. Get titles from Watch task.
+2. Build complete page-layout map.
+
+3. For each added/changed/deleted layout file:
+   a. Delete page (slices, HTML). // Ignored when title doesn't already exist in map.
+   b. Create new page (slices, HTML).
+
+4. Create index.html based on entire page map.
+
+*/
+
+
+
 'use strict';
 
 var gm = require("gm").subClass({ imageMagick: true });
@@ -21,33 +61,55 @@ module.exports = function ( grunt ) {
 		// Don't allow next grunt task to start until this one is finished.
 		done = this.async();
 
+		// Get files to process.
+		grunt.log.writeln(this.filesSrc.join().replace(/,/g, "\n"));
+
+		var affectedFilepaths = grunt.file.expand(this.filesSrc);
+		var allFilepaths = grunt.file.expand(["layouts/*.png"]);
+
+		// Reset.
+		_warningCount = 0;
+		_pages = {};
+
 		// Build page-layout map.
-		var files = grunt.file.expand(["layouts/*.png"]);
 		grunt.log.subhead("Building page-layout map...");
-		resetPageLayoutMap();
-		for (var i = 0; i < files.length; i++) {
-			var imageFilename = files[i].replace(/layouts\//g, "");
+		for (var i = 0; i < allFilepaths.length; i++) {
+			var imageFilename = allFilepaths[i].replace(/layouts\//g, "");
 			addToPageMap(imageFilename);
 		}
 
-		// Create responsive pages from layouts.
+		// Create responsive pages for new/updated layouts.
 		grunt.log.subhead("Creating pages...");
-		async.each(Object.keys(_pages), processPage, onComplete);
+		async.each(getUniqueTitlesFromFilepaths(affectedFilepaths), createPage, onPagesCreated);
   	});
 
-	function resetPageLayoutMap() {
-		_warningCount = 0;
-		_pages = {};
-		grunt.file.delete("resources/pages");
-		grunt.file.delete("resources/img");
+	function deletePage(title) {
+		// Delete image files.
+		var imageSliceFilepaths = grunt.file.expand(["resources/img/" + title + "*.png"]);
+		for (var i = 0; i < imageSliceFilepaths.length; i++) {
+			if (grunt.file.exists(imageSliceFilepaths[i])) {
+				grunt.file.delete(imageSliceFilepaths[i]);
+			}
+		}
+
+		// Delete HTML file.
+		var pageFilepath = "resources/pages/" + title + ".html";
+		if (grunt.file.exists(pageFilepath)) {
+			grunt.file.delete(pageFilepath);
+		}
 	}
 
-	function processPage(title, callbackLayoutsComplete) {
+	function createPage(title, callbackPagesCreated) {
 		var pageTemplate = _prototypeHtmlTemplate;
 		var breakpoints = _pages[title];
 		var html = "";
 		var css = "";
 		var i = 0;
+
+		// Delete existing page files (HTML, image slices).
+		deletePage(title);
+
+		// Create slices for each layout.
 		async.whilst(
 			function () {return i < breakpoints.length;},
 			function (callback) {
@@ -64,12 +126,12 @@ module.exports = function ( grunt ) {
 				grunt.file.write("resources/pages/" + title + ".html", pageTemplate);
 				grunt.log.ok(title + ".html complete");
 
-				callbackLayoutsComplete();
+				callbackPagesCreated();
 			}
 		);
 	}
 
-	function onComplete(err) {
+	function onPagesCreated(err) {
 		grunt.log.subhead("Wrapping up...");
 		writeIndexFile();
 
@@ -127,12 +189,10 @@ module.exports = function ( grunt ) {
 		layoutInfo.title = title;
 		layoutInfo.breakpoint = breakpoint;
 
-		// grunt.log.ok(layoutInfo.title + " " + layoutInfo.breakpoint);
-
 		return layoutInfo;
 	}
 
-	function createSlices(title, breakpoint, callbackSlicesComplete) {
+	function createSlices(title, breakpoint, callbackSlicesCreated) {
 		var filename = title + "@" + breakpoint + ".png";
 		var abspath = "layouts/" + filename;
 
@@ -167,7 +227,7 @@ module.exports = function ( grunt ) {
 						grunt.log.warn("Error occurred while slicing " + filename + ".");
 					} else {
 						grunt.log.writeln("   " + filename + " sliced");
-						callbackSlicesComplete();
+						callbackSlicesCreated();
 					}
 				}
 			);
@@ -233,5 +293,21 @@ module.exports = function ( grunt ) {
 		return !isNaN(string);
 	}
 
+	function getUniqueTitlesFromFilepaths(filepaths) {
+		var titles = [];
+
+		for (var i = 0; i < filepaths.length; i++) {
+			var title = filepaths[i].split("/").pop();
+			title = title.replace(/@\d*\.png$/g, "");
+
+			// Keep array normalized.
+			// Don't add redundant titles.
+			if (titles.indexOf(title) === -1) {
+				titles.push(title);
+			}
+		}
+
+		return titles;
+	}
 };
 
