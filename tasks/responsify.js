@@ -1,36 +1,11 @@
 /*
 
-For all reported files from watch task, normalize titles.
-Evaluate if title is new or existing.
-
-Add
-- new layouts to existing page
-		Delete page (slices, HTML).
-		Create new page (slices, HTML).
-		Recreate index.html based on entire page map.
-- layouts for a new page
-		Create new page (slices, HTML).
-		Recreate index.html based on entire page map.
-
-Change
-- layouts for existing page
-		Delete page (slices, HTML).
-		Create new page (slices, HTML).
-		Recreate index.html based on entire page map.
-
-Delete
-- layouts from existing page
-		Delete page (slices, HTML).
-		Create new page (slices, HTML).
-		Recreate index.html based on entire page map.
-
-
-1. Get titles from Watch task.
+1. Get affected files from Watch task.
 2. Build complete page-layout map.
 
-3. For each added/changed/deleted layout file:
-   a. Delete page (slices, HTML). // Ignored when title doesn't already exist in map.
-   b. Create new page (slices, HTML).
+3. For each affected file:
+   a. Delete associated page files (slices, HTML).
+   b. If applicable, create new page files (slices, HTML).
 
 4. Create index.html based on entire page map.
 
@@ -62,10 +37,16 @@ module.exports = function ( grunt ) {
 		done = this.async();
 
 		// Get files to process.
-		grunt.log.writeln(this.filesSrc.join().replace(/,/g, "\n"));
-
-		var affectedFilepaths = grunt.file.expand(this.filesSrc);
 		var allFilepaths = grunt.file.expand(["layouts/*.png"]);
+		var affectedFilepaths = grunt.config(["affectedFilepaths"]);
+		if (!affectedFilepaths) {
+			// If there are no affected files detected,
+			// assume this is the first run and do full reset.
+			affectedFilepaths = allFilepaths;
+			grunt.file.delete("resources/pages/");
+			grunt.file.delete("resources/img/");
+		}
+		grunt.log.writeln(affectedFilepaths.join().replace(/,/g, "\n"));
 
 		// Reset.
 		_warningCount = 0;
@@ -79,8 +60,8 @@ module.exports = function ( grunt ) {
 		}
 
 		// Create responsive pages for new/updated layouts.
-		grunt.log.subhead("Creating pages...");
-		async.each(getUniqueTitlesFromFilepaths(affectedFilepaths), createPage, onPagesCreated);
+		grunt.log.subhead("Processing pages...");
+		async.each(getUniqueTitlesFromFilepaths(affectedFilepaths), processPage, onPagesCreated);
   	});
 
 	function deletePage(title) {
@@ -99,7 +80,7 @@ module.exports = function ( grunt ) {
 		}
 	}
 
-	function createPage(title, callbackPagesCreated) {
+	function processPage(title, callbackPagesCreated) {
 		var pageTemplate = _prototypeHtmlTemplate;
 		var breakpoints = _pages[title];
 		var html = "";
@@ -108,6 +89,12 @@ module.exports = function ( grunt ) {
 
 		// Delete existing page files (HTML, image slices).
 		deletePage(title);
+
+		// If there are no breakpoints,
+		// assume page has been completely removed and abort.
+		if (!breakpoints) {
+			return callbackPagesCreated();
+		}
 
 		// Create slices for each layout.
 		async.whilst(
