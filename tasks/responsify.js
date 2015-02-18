@@ -21,6 +21,7 @@ var async = require("async");
 var done;
 
 module.exports = function ( grunt ) {
+	var _allFilepaths = [];
 	var _pages = {};
 	var _issues = [];
 	var _indexHtmlTemplate = grunt.file.read("resources/templates/index.html");
@@ -38,12 +39,11 @@ module.exports = function ( grunt ) {
 		done = this.async();
 
 		// Get files to process.
-		var allFilepaths = grunt.file.expand(["layouts/*.png"]);
 		var affectedFilepaths = grunt.config(["affectedFilepaths"]);
 		if (!affectedFilepaths) {
 			// If there are no affected files detected,
 			// assume this is the first run and do full reset.
-			affectedFilepaths = allFilepaths;
+			affectedFilepaths = getAllLayoutFilepaths();
 			if (grunt.file.exists("resources/pages/")) {
 				grunt.file.delete("resources/pages/");
 			}
@@ -51,6 +51,13 @@ module.exports = function ( grunt ) {
 				grunt.file.delete("resources/img/");
 			}
 		}
+
+		buildSite(affectedFilepaths);
+  	});
+
+	function buildSite(affectedFilepaths) {
+		_allFilepaths = getAllLayoutFilepaths();
+
 		grunt.log.subhead("Affected files:");
 		grunt.log.writeln(affectedFilepaths.join().replace(/,/g, "\n"));
 
@@ -60,30 +67,14 @@ module.exports = function ( grunt ) {
 
 		// Build page-layout map.
 		grunt.log.subhead("Building page-layout map...");
-		for (var i = 0; i < allFilepaths.length; i++) {
-			var imageFilename = allFilepaths[i].replace(/layouts\//g, "");
+		for (var i = 0; i < _allFilepaths.length; i++) {
+			var imageFilename = _allFilepaths[i].replace(/layouts\//g, "");
 			addToPageMap(imageFilename);
 		}
 
 		// Create responsive pages for new/updated layouts.
 		grunt.log.subhead("Processing pages...");
-		async.each(getUniqueTitlesFromFilepaths(affectedFilepaths), processPage, onPagesCreated);
-  	});
-
-	function deletePage(title) {
-		// Delete image files.
-		var imageSliceFilepaths = grunt.file.expand(["resources/img/" + title + "*.png"]);
-		for (var i = 0; i < imageSliceFilepaths.length; i++) {
-			if (grunt.file.exists(imageSliceFilepaths[i])) {
-				grunt.file.delete(imageSliceFilepaths[i]);
-			}
-		}
-
-		// Delete HTML file.
-		var pageFilepath = "resources/pages/" + title + ".html";
-		if (grunt.file.exists(pageFilepath)) {
-			grunt.file.delete(pageFilepath);
-		}
+		async.each(getUniqueTitlesFromFilepaths(affectedFilepaths), processPage, onTaskComplete);
 	}
 
 	function processPage(title, callback_processingComplete) {
@@ -122,68 +113,6 @@ module.exports = function ( grunt ) {
 				callback_processingComplete();
 			}
 		);
-	}
-
-	function onPagesCreated(err) {
-		grunt.log.subhead("Wrapping up...");
-		writeIndexFile();
-
-		if (_issues.length > 0) {
-			grunt.log.fail("\nResponsify completed with issues:");
-			for (var i = 0; i < _issues.length; i++) {
-				grunt.log.error(_issues[i]);
-			}
-		} else {
-			grunt.log.success("\nResponsify completed successfully.");
-		}
-		done(true);
-	}
-
-	function addToPageMap(filename) {
-		var layoutInfo = getLayoutInfo(filename)
-		if (layoutInfo) {
-			if (_pages[layoutInfo.title]) {
-				_pages[layoutInfo.title].push(layoutInfo.breakpoint);
-				_pages[layoutInfo.title].sort(function(a,b){return a-b;});
-			} else {
-				_pages[layoutInfo.title] = [layoutInfo.breakpoint];
-			}
-			grunt.log.ok(layoutInfo.title + " " + _pages[layoutInfo.title].join().replace(/,/g, ", "));
-		}
-	}
-
-	function getFilenameBase(filename) {
-		var filenameType = "." + filename.split(".").pop();
-		var filenameBase = filename.replace(filenameType, "");
-
-		return filenameBase;
-	}
-
-	function getLayoutInfo(filename) {
-		var layoutInfo = false;
-
-		var filenameType = filename.split(".").pop();
-		var filenameBase = filename.replace("." + filenameType, "");
-		if (filenameBase.indexOf("@") === -1) {
-			_issues.push("Ignored file " + filename + ": missing @ symbol for indicating breakpoint.");
-			return layoutInfo;
-		}
-
-		var breakpoint = filenameBase.split("@").pop();
-		if (!isNumber(breakpoint)) {
-			_issues.push("Ignored file " + filename + ": \"" + breakpoint + "\" is not a valid breakpoint.");
-			return layoutInfo;
-		}
-
-		var title = filenameBase.replace("@" + breakpoint, "");
-		// To do: check for blank page names.
-
-
-		layoutInfo = {};
-		layoutInfo.title = title;
-		layoutInfo.breakpoint = breakpoint;
-
-		return layoutInfo;
 	}
 
 	function createSlices(title, breakpoint, callback_slicingComplete) {
@@ -229,6 +158,59 @@ module.exports = function ( grunt ) {
 				);
 			}
 		});
+	}
+
+	function onTaskComplete(err) {
+		grunt.log.subhead("Wrapping up...");
+		writeIndexFile();
+
+		if (_issues.length > 0) {
+			grunt.log.fail("\nResponsify completed with issues:");
+			for (var i = 0; i < _issues.length; i++) {
+				grunt.log.error(_issues[i]);
+			}
+		} else {
+			grunt.log.success("\nResponsify completed successfully.");
+		}
+
+		// Check to see if new files were dropped
+		// while last batch of files was being processed.
+		// Process any newly detected files ("stragglers").
+		if (getStragglers().length > 0) {
+			grunt.log.writeln("Stragglers detected, running again... ");
+			buildSite(getStragglers());
+		} else {
+			done(true);
+		}
+	}
+
+	function addToPageMap(filename) {
+		var layoutInfo = getLayoutInfo(filename)
+		if (layoutInfo) {
+			if (_pages[layoutInfo.title]) {
+				_pages[layoutInfo.title].push(layoutInfo.breakpoint);
+				_pages[layoutInfo.title].sort(function(a,b){return a-b;});
+			} else {
+				_pages[layoutInfo.title] = [layoutInfo.breakpoint];
+			}
+			grunt.log.ok(layoutInfo.title + " " + _pages[layoutInfo.title].join().replace(/,/g, ", "));
+		}
+	}
+
+	function deletePage(title) {
+		// Delete image files.
+		var imageSliceFilepaths = grunt.file.expand(["resources/img/" + title + "*.png"]);
+		for (var i = 0; i < imageSliceFilepaths.length; i++) {
+			if (grunt.file.exists(imageSliceFilepaths[i])) {
+				grunt.file.delete(imageSliceFilepaths[i]);
+			}
+		}
+
+		// Delete HTML file.
+		var pageFilepath = "resources/pages/" + title + ".html";
+		if (grunt.file.exists(pageFilepath)) {
+			grunt.file.delete(pageFilepath);
+		}
 	}
 
 	function getHtmlLayoutDivs(title, breakpoints) {
@@ -304,6 +286,60 @@ module.exports = function ( grunt ) {
 		}
 
 		return titles;
+	}
+
+	function getFilenameBase(filename) {
+		var filenameType = "." + filename.split(".").pop();
+		var filenameBase = filename.replace(filenameType, "");
+
+		return filenameBase;
+	}
+
+	function getLayoutInfo(filename) {
+		var layoutInfo = false;
+
+		var filenameType = filename.split(".").pop();
+		var filenameBase = filename.replace("." + filenameType, "");
+		if (filenameBase.indexOf("@") === -1) {
+			_issues.push("Ignored file " + filename + ": missing @ symbol for indicating breakpoint.");
+			return layoutInfo;
+		}
+
+		var breakpoint = filenameBase.split("@").pop();
+		if (!isNumber(breakpoint)) {
+			_issues.push("Ignored file " + filename + ": \"" + breakpoint + "\" is not a valid breakpoint.");
+			return layoutInfo;
+		}
+
+		var title = filenameBase.replace("@" + breakpoint, "");
+		// To do: check for blank page names.
+
+
+		layoutInfo = {};
+		layoutInfo.title = title;
+		layoutInfo.breakpoint = breakpoint;
+
+		return layoutInfo;
+	}
+
+	function getAllLayoutFilepaths() {
+		return grunt.file.expand(["layouts/*.png"]);
+	}
+
+	function getStragglers() {
+		var stragglers = [];
+		var allFilepathsLastRun = _allFilepaths;
+		var allFilepathsNow = getAllLayoutFilepaths();
+
+		// If a file in the latest layouts folder wasn't in the
+		// last run, add it to the list of stragglers for processing.
+		for (var i = 0; i < allFilepathsNow.length; i++) {
+			if (allFilepathsLastRun.indexOf(allFilepathsNow[i]) === -1) {
+				stragglers.push(allFilepathsNow[i]);
+			}
+		} 
+
+		return stragglers;
 	}
 };
 
