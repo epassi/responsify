@@ -23,7 +23,6 @@ var done;
 module.exports = function ( grunt ) {
 	var _pages = {};
 	var _issues = [];
-	var _warningCount = 0;
 	var _indexHtmlTemplate = grunt.file.read("resources/templates/index.html");
 	var _prototypeHtmlTemplate = grunt.file.read("resources/templates/prototype.html");
 	var _htmlTableRowPartial = grunt.file.read("resources/partials/index-table-row.html");
@@ -45,14 +44,17 @@ module.exports = function ( grunt ) {
 			// If there are no affected files detected,
 			// assume this is the first run and do full reset.
 			affectedFilepaths = allFilepaths;
-			grunt.file.delete("resources/pages/");
-			grunt.file.delete("resources/img/");
+			if (grunt.file.exists("resources/pages/")) {
+				grunt.file.delete("resources/pages/");
+			}
+			if (grunt.file.exists("resources/img/")) {
+				grunt.file.delete("resources/img/");
+			}
 		}
 		grunt.log.subhead("Affected files:");
 		grunt.log.writeln(affectedFilepaths.join().replace(/,/g, "\n"));
 
 		// Reset.
-		_warningCount = 0;
 		_issues = [];
 		_pages = {};
 
