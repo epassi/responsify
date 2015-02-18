@@ -22,6 +22,7 @@ var done;
 
 module.exports = function ( grunt ) {
 	var _pages = {};
+	var _issues = [];
 	var _warningCount = 0;
 	var _indexHtmlTemplate = grunt.file.read("resources/templates/index.html");
 	var _prototypeHtmlTemplate = grunt.file.read("resources/templates/prototype.html");
@@ -47,10 +48,12 @@ module.exports = function ( grunt ) {
 			grunt.file.delete("resources/pages/");
 			grunt.file.delete("resources/img/");
 		}
+		grunt.log.subhead("Affected files:");
 		grunt.log.writeln(affectedFilepaths.join().replace(/,/g, "\n"));
 
 		// Reset.
 		_warningCount = 0;
+		_issues = [];
 		_pages = {};
 
 		// Build page-layout map.
@@ -123,8 +126,11 @@ module.exports = function ( grunt ) {
 		grunt.log.subhead("Wrapping up...");
 		writeIndexFile();
 
-		if (_warningCount) {
-			grunt.log.fail("\nResponsify completed with warnings.");
+		if (_issues.length > 0) {
+			grunt.log.fail("\nResponsify completed with issues:");
+			for (var i = 0; i < _issues.length; i++) {
+				grunt.log.error(_issues[i]);
+			}
 		} else {
 			grunt.log.success("\nResponsify completed successfully.");
 		}
@@ -157,15 +163,13 @@ module.exports = function ( grunt ) {
 		var filenameType = filename.split(".").pop();
 		var filenameBase = filename.replace("." + filenameType, "");
 		if (filenameBase.indexOf("@") === -1) {
-			grunt.log.error("Ignored file " + filename + ": missing @ symbol for indicating breakpoint.");
-			_warningCount++;
+			_issues.push("Ignored file " + filename + ": missing @ symbol for indicating breakpoint.");
 			return layoutInfo;
 		}
 
 		var breakpoint = filenameBase.split("@").pop();
 		if (!isNumber(breakpoint)) {
-			grunt.log.warn("Ignored file " + filename + ": \"" + breakpoint + "\" is not a valid breakpoint.");
-			_warningCount++;
+			_issues.push("Ignored file " + filename + ": \"" + breakpoint + "\" is not a valid breakpoint.");
 			return layoutInfo;
 		}
 
@@ -186,7 +190,7 @@ module.exports = function ( grunt ) {
 
 		var size = gm(abspath).size(function(err, size) {
 			if (err) {
-				grunt.log.warn("Error occurred while slicing " + filename + ".");
+				_issues.push("Error occurred while slicing " + filename + ".");
 				callback_slicingComplete();
 			} else {			
 				var width = size.width;
