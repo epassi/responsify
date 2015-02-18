@@ -1,15 +1,16 @@
-/*
+/******************************************************************************
 
 1. Get affected files from Watch task.
 2. Build complete page-layout map.
 
-3. For each affected file:
+3. Rebuild portions of site affected by changed files.
+   For each affected file:
    a. Delete associated page files (slices, HTML).
    b. If applicable, create new page files (slices, HTML).
 
 4. Create index.html based on entire page map.
 
-*/
+******************************************************************************/
 
 
 
@@ -80,7 +81,7 @@ module.exports = function ( grunt ) {
 		}
 	}
 
-	function processPage(title, callbackPagesCreated) {
+	function processPage(title, callback_processingComplete) {
 		var pageTemplate = _prototypeHtmlTemplate;
 		var breakpoints = _pages[title];
 		var html = "";
@@ -93,7 +94,7 @@ module.exports = function ( grunt ) {
 		// If there are no breakpoints,
 		// assume page has been completely removed and abort.
 		if (!breakpoints) {
-			return callbackPagesCreated();
+			return callback_processingComplete();
 		}
 
 		// Create slices for each layout.
@@ -113,7 +114,7 @@ module.exports = function ( grunt ) {
 				grunt.file.write("resources/pages/" + title + ".html", pageTemplate);
 				grunt.log.ok(title + ".html complete");
 
-				callbackPagesCreated();
+				callback_processingComplete();
 			}
 		);
 	}
@@ -156,7 +157,7 @@ module.exports = function ( grunt ) {
 		var filenameType = filename.split(".").pop();
 		var filenameBase = filename.replace("." + filenameType, "");
 		if (filenameBase.indexOf("@") === -1) {
-			grunt.log.warn("Ignored file " + filename + ": missing @ symbol for indicating breakpoint.");
+			grunt.log.error("Ignored file " + filename + ": missing @ symbol for indicating breakpoint.");
 			_warningCount++;
 			return layoutInfo;
 		}
@@ -179,46 +180,48 @@ module.exports = function ( grunt ) {
 		return layoutInfo;
 	}
 
-	function createSlices(title, breakpoint, callbackSlicesCreated) {
+	function createSlices(title, breakpoint, callback_slicingComplete) {
 		var filename = title + "@" + breakpoint + ".png";
 		var abspath = "layouts/" + filename;
 
 		var size = gm(abspath).size(function(err, size) {
+			if (err) {
+				grunt.log.warn("Error occurred while slicing " + filename + ".");
+				callback_slicingComplete();
+			} else {			
+				var width = size.width;
+				var height = size.height;
 
+				var sliceCount = 3;
+				var sliceHeight = Math.ceil(height / sliceCount);
 
-			var width = size.width;
-			var height = size.height;
+				var i = 1;
+				var y = 0;
+				async.whilst(
+					function() {return y < height;},
+					function(callback) {
+						var slice = gm(abspath).crop(width, sliceHeight, 0, y);
+						var croppedFilename = "resources/img/" + getFilenameBase(filename) + "_" + i++ + ".png";
 
-			var sliceCount = 3;
-			var sliceHeight = Math.ceil(height / sliceCount);
+						// Create img folder if it doesn't already exist.
+						if (!grunt.file.exists("resources/img")) {
+							grunt.file.mkdir("resources/img");
+						}
 
-			var i = 1;
-			var y = 0;
-			async.whilst(
-				function() {return y < height;},
-				function(callback) {
-					var slice = gm(abspath).crop(width, sliceHeight, 0, y);
-					var croppedFilename = "resources/img/" + getFilenameBase(filename) + "_" + i++ + ".png";
+						slice.quality(100).write(croppedFilename, callback);
 
-					// Create img folder if it doesn't already exist.
-					if (!grunt.file.exists("resources/img")) {
-						grunt.file.mkdir("resources/img");
+						y += sliceHeight;
+					},
+					function(err) {
+						if (err) {
+							grunt.log.warn("Error occurred while slicing " + filename + ".");
+						} else {
+							grunt.log.writeln("   " + filename + " sliced");
+							callback_slicingComplete();
+						}
 					}
-
-					slice.quality(100).write(croppedFilename, callback);
-
-					y += sliceHeight;
-				},
-				function(err) {
-					if (err) {
-						grunt.log.warn("Error occurred while slicing " + filename + ".");
-					} else {
-						grunt.log.writeln("   " + filename + " sliced");
-						callbackSlicesCreated();
-					}
-				}
-			);
-
+				);
+			}
 		});
 	}
 
