@@ -116,8 +116,11 @@ module.exports = function ( grunt ) {
 	}
 
 	function createSlices(title, breakpoint, callback_slicingComplete) {
-		var filename = title + "@" + breakpoint + ".png";
-		var abspath = "layouts/" + filename;
+		// In getting filepath, account for both a PNG or JPG scenario.
+		var filepaths = grunt.file.expand("layouts/" + title + "@" + breakpoint + "*");
+		// There should be only one match, but just in case, we'll grab only the first match [0] to be sure.
+		var abspath = filepaths[0];
+		var filename = abspath.split("/").pop();
 
 		var size = gm(abspath).size(function(err, size) {
 			if (err) {
@@ -276,7 +279,7 @@ module.exports = function ( grunt ) {
 
 		for (var i = 0; i < filepaths.length; i++) {
 			var title = filepaths[i].split("/").pop();
-			title = title.replace(/@\d*\.png$/g, "");
+			title = title.replace(/@\d*\.(png|jpg)$/g, "");
 
 			// Keep array normalized.
 			// Don't add redundant titles.
@@ -323,7 +326,7 @@ module.exports = function ( grunt ) {
 	}
 
 	function getAllLayoutFilepaths() {
-		return grunt.file.expand(["layouts/*.png"]);
+		return grunt.file.expand(["layouts/*.{png,jpg}"]);
 	}
 
 	function getStragglers() {
