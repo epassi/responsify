@@ -14,7 +14,7 @@ You'll need to install this software before using Responsify. This has been test
 `brew install graphicsmagick`
 
 ###Using Responsify
-1. Gather your layout comps or wireframes and name the files using their corresponding breakpoint. The breakpoint should be the minimum density-independent pixel width (CSS pixel width) of the viewport. Example: Home@320.png, Home@640.png, ProductDetail@320.jpg, ProductDetail@640.jpg, etc. 
+1. Gather your layout comps or wireframes and name the files using their corresponding breakpoint. The breakpoint should be the minimum density-independent pixel width (CSS pixel width) of the viewport. Example: Home@320.png, Home@640.png, ProductDetail@320.jpg, ProductDetail@640.jpg, etc. See note below regarding high resolution comps.
 2. Create your new site by cloning this repository:  
 `git clone http://github.com/epassi/responsify "my-web-project-name"`
 3. Run `npm install`.
