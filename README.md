@@ -10,7 +10,9 @@ You'll need to install this software before using Responsify. This has been test
 `npm install -g grunt-cli`
 3. [Homebrew](http://brew.sh/) package manager via terminal:  
 `ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"`
-4. [GraphicsMagick](http://www.graphicsmagick.org/) image processor via terminal:  
+4. [ImageMagick](http://www.imagemagick.org/) image processor via terminal:  
+`brew install imagemagick`
+5. [GraphicsMagick](http://www.graphicsmagick.org/) image processor via terminal:  
 `brew install graphicsmagick`
 
 ###Using Responsify
