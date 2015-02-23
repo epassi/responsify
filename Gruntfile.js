@@ -20,6 +20,7 @@ module.exports = function(grunt) {
 			build: {
 				cwd: ".",			// Source folder
 				src: [	"./*.html",
+						"./resources/pages/**/*.html",
 						"./resources/img/**/*.png",
 						"./resources/css/**/*.css" 
 						],		// The files to copy
