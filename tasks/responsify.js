@@ -6,6 +6,7 @@ var done;
 
 module.exports = function ( grunt ) {
 	var _pages = {};
+	var _warningCount = 0;
 	var _indexHtmlTemplate = grunt.file.read("resources/templates/index.html");
 	var _prototypeHtmlTemplate = grunt.file.read("resources/templates/prototype.html");
 	var _htmlTableRowPartial = grunt.file.read("resources/partials/index-table-row.html");
@@ -20,15 +21,22 @@ module.exports = function ( grunt ) {
 		// Don't allow next grunt task to start until this one is finished.
 		done = this.async();
 
-		// Get breakpoints.
-		resetLayouts();
-		grunt.file.recurse("layouts/", traverseFile);
+		// Build page-layout map.
+		var files = grunt.file.expand(["layouts/*.png"]);
+		grunt.log.subhead("Building page-layout map...");
+		resetPageLayoutMap();
+		for (var i = 0; i < files.length; i++) {
+			var imageFilename = files[i].replace(/layouts\//g, "");
+			addToPageMap(imageFilename);
+		}
 
-		// Create image slices out of the layouts.
+		// Create responsive pages from layouts.
+		grunt.log.subhead("Creating pages...");
 		async.each(Object.keys(_pages), processPage, onComplete);
   	});
 
-	function resetLayouts() {
+	function resetPageLayoutMap() {
+		_warningCount = 0;
 		_pages = {};
 		grunt.file.delete("resources/pages");
 		grunt.file.delete("resources/img");
@@ -54,6 +62,7 @@ module.exports = function ( grunt ) {
 				pageTemplate = pageTemplate.replace(/{{maxBreakpoint}}/g, breakpoints[breakpoints.length-1]);
 				pageTemplate = pageTemplate.replace(/{{html}}/g, html);
 				grunt.file.write("resources/pages/" + title + ".html", pageTemplate);
+				grunt.log.ok(title + ".html complete");
 
 				callbackLayoutsComplete();
 			}
@@ -61,13 +70,24 @@ module.exports = function ( grunt ) {
 	}
 
 	function onComplete(err) {
+		grunt.log.subhead("Wrapping up...");
 		writeIndexFile();
-		grunt.log.writeln("everything done");
+
+		if (_warningCount) {
+			grunt.log.fail("\nResponsify completed with warnings.");
+		} else {
+			grunt.log.success("\nResponsify completed successfully.");
+		}
 		done(true);
 	}
+<<<<<<< HEAD
 	
 
 	function traverseFile(abspath, rootdir, subdir, filename) {
+=======
+
+	function addToPageMap(filename) {
+>>>>>>> origin/1.2.1
 		var layoutInfo = getLayoutInfo(filename)
 		if (layoutInfo) {
 			if (_pages[layoutInfo.title]) {
@@ -76,7 +96,7 @@ module.exports = function ( grunt ) {
 			} else {
 				_pages[layoutInfo.title] = [layoutInfo.breakpoint];
 			}
-			grunt.log.ok(layoutInfo.title + " " + _pages[layoutInfo.title].join());
+			grunt.log.ok(layoutInfo.title + " " + _pages[layoutInfo.title].join().replace(/,/g, ", "));
 		}
 	}
 
@@ -93,13 +113,15 @@ module.exports = function ( grunt ) {
 		var filenameType = filename.split(".").pop();
 		var filenameBase = filename.replace("." + filenameType, "");
 		if (filenameBase.indexOf("@") === -1) {
-			grunt.log.fail(filename + ": missing @ symbol for indicating breakpoint.");
+			grunt.log.warn("Ignored file " + filename + ": missing @ symbol for indicating breakpoint.");
+			_warningCount++;
 			return layoutInfo;
 		}
 
 		var breakpoint = filenameBase.split("@").pop();
 		if (!isNumber(breakpoint)) {
-			grunt.log.fail(filename + ": \"" + breakpoint + "\" is not a valid breakpoint.");
+			grunt.log.warn("Ignored file " + filename + ": \"" + breakpoint + "\" is not a valid breakpoint.");
+			_warningCount++;
 			return layoutInfo;
 		}
 
@@ -148,9 +170,9 @@ module.exports = function ( grunt ) {
 				},
 				function(err) {
 					if (err) {
-						// error
+						grunt.log.warn("Error occurred while slicing " + filename + ".");
 					} else {
-						grunt.log.ok(filename + " slices done");
+						grunt.log.writeln("   " + filename + " sliced");
 						callbackSlicesComplete();
 					}
 				}
@@ -207,6 +229,7 @@ module.exports = function ( grunt ) {
 		indexHtml = indexHtml.replace(/{{project}}/g, project);
 		indexHtml = indexHtml.replace(/{{pages}}/g, indexTableRows);
 		grunt.file.write("index.html", indexHtml);
+		grunt.log.ok("index.html complete");
 	}
 
 	function isNumber(string) {
