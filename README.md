@@ -1,6 +1,6 @@
 #Responsify
 
-Created for designers, this repository is a prototype site template for generating responsive pages from a set of layout comps or wireframes. Helpful for simulating responsive layouts.
+This repository is a site template for designers to simulate responsive layouts with static comps or wireframes. When a set of layout comps are added to a designated folder in the site, a Grunt automation task will generate a corresponding HTML prototype that gathers the comps into a single responsive page.
 
 ###Required software
 You'll need to install this software before using Responsify. This has been tested on Mac OS only. 
