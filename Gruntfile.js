@@ -12,9 +12,8 @@ module.exports = function(grunt) {
 	      	default: {
 		        options: {
 		        },
-		        src: ["layouts/*.png"],
 		        files: {
-		          'tmp/default_options': ['test/fixtures/testing', 'test/fixtures/123']
+		        	src:["layouts/*.png"]
 		        }
 			}
 	    },
@@ -60,11 +59,24 @@ module.exports = function(grunt) {
 				files: ["layouts/**"],
 				tasks: ["responsify", "clean", "copy"],
 				options: {
-					// nospawn: true
 					spawn: false
 				}
 			}
 		}
+	});
+
+	// When Watch task is triggered, tell Responsify task
+	// which files have been udpated.
+	// Without this, Responsify will process the entire
+	// layout folder each time Watch is triggered. 
+	var changedFiles = Object.create(null);
+	var onChange = grunt.util._.debounce(function() {
+		grunt.config('affectedFilepaths', Object.keys(changedFiles));
+		changedFiles = Object.create(null);
+	}, 200);
+	grunt.event.on('watch', function(action, filepath) {
+		changedFiles[filepath] = action;
+		onChange();
 	});
 
 	grunt.loadNpmTasks("grunt-contrib-copy");
