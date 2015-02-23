@@ -1,5 +1,8 @@
 'use strict';
 
+var gm = require("gm").subClass({ imageMagick: true });
+var async = require("async");
+var done;
 
 module.exports = function ( grunt ) {
 	var _breakpoints = [];
@@ -9,31 +12,116 @@ module.exports = function ( grunt ) {
 	var _css = "";
 
 
-  // Please see the Grunt documentation for more information regarding task
-  // creation: http://gruntjs.com/creating-tasks
+	// Please see the Grunt documentation for more information regarding task
+	// creation: http://gruntjs.com/creating-tasks
 
-  grunt.registerMultiTask( 'responsify', 'generates a responsive prototype from layout comps/wireframes', function () {
+  	grunt.registerMultiTask( 'responsify', 'generates a responsive prototype from layout comps/wireframes', function () {
 		var templateHTML = grunt.file.read("resources/partials/template.html");
-		_breakpoints = [];
-		grunt.file.recurse("layouts/", onTraverseFile);
+
+		// Force synchronous flow.
+		// Don't allow next grunt task to start until this one is finished.
+		done = this.async();
+
+		// Get breakpoints.
+		resetLayouts();
+		grunt.file.recurse("layouts/", traverseFile);
 		_breakpoints.sort(function(a,b){return a-b;});
 
+		// Create image slices out of the layouts.
+		async.each(_breakpoints, processBreakpoint, onComplete);
+
+		// Generate the HTML file.
 		_html = getLayoutHTML();
 		_css = getLayoutCSS();
-
 		templateHTML = templateHTML.replace(/{{styles}}/g, _css);
 		templateHTML = templateHTML.replace(/{{maxBreakpoint}}/g, _breakpoints[_breakpoints.length-1]);
 		templateHTML = templateHTML.replace(/{{html}}/g, _html);
 		grunt.file.write("index.html", templateHTML);
-  });
 
-	function onTraverseFile(abspath, rootdir, subdir, filename) {
-		var extension = "." + filename.split(".").pop();
-		var filenameWithoutExtension = filename.replace(extension,"");
-		if (isNumber(filenameWithoutExtension)) {
-			var breakpoint = filenameWithoutExtension;
+  	});
+
+	function resetLayouts() {
+		_breakpoints = [];
+		grunt.file.delete("resources/img");
+	}
+
+	function processBreakpoint(breakpoint, callbackBreakpointsComplete) {
+		var i = 0;
+		async.whilst(
+			function () {return i < _breakpoints.length;},
+			function (callback) {
+				createSlices(_breakpoints[i++], callback);
+
+			},
+			function (err) {
+				callbackBreakpointsComplete();
+			}
+		);
+	}
+
+	function onComplete(err) {
+		grunt.log.writeln("everything done");
+		done(true);
+	}
+
+
+	function traverseFile(abspath, rootdir, subdir, filename) {
+		var filenameBase = getFilenameBase(filename);
+		if (isNumber(filenameBase)) {
+			var breakpoint = filenameBase;
 			_breakpoints.push(breakpoint);
+			// createSlices(abspath, filename);
 		}
+	}
+
+	function getFilenameBase(filename) {
+		var filenameType = "." + filename.split(".").pop();
+		var filenameBase = filename.replace(filenameType, "");
+
+		return filenameBase;
+	}
+
+	function createSlices(breakpoint, callbackSlicesComplete) {
+		var filename = breakpoint + ".png";
+		var abspath = "layouts/" + filename;
+
+		var size = gm(abspath).size(function(err, size) {
+
+
+			var width = size.width;
+			var height = size.height;
+
+			var sliceCount = 3;
+			var sliceHeight = Math.ceil(height / sliceCount);
+
+			var i = 1;
+			var y = 0;
+			async.whilst(
+				function() {return y < height;},
+				function(callback) {
+					var slice = gm(abspath).crop(width, sliceHeight, 0, y);
+					var croppedFilename = "resources/img/" + getFilenameBase(filename) + "_" + i++ + ".png";
+
+					// Create img folder if it doesn't already exist.
+					if (!grunt.file.exists("resources/img")) {
+						grunt.file.mkdir("resources/img");
+					}
+
+					slice.quality(100).write(croppedFilename, callback);
+
+					y += sliceHeight;
+				},
+				function(err) {
+					if (err) {
+						// error
+					} else {
+						grunt.log.ok(filename + " slices done");
+						callbackSlicesComplete();
+					}
+				}
+			);
+
+		});
 	}
 
 	function getLayoutHTML() {
@@ -42,7 +130,7 @@ module.exports = function ( grunt ) {
 		for (var i = 0; i < _breakpoints.length; i++) {
 			html += _htmlTemplate;
 			html = html.replace(/{{breakpoint}}/g, _breakpoints[i]);
-			html = html.replace(/{{filename}}/g, _breakpoints[i]+".png");
+			html = html.replace(/{{filenameBase}}/g, _breakpoints[i]);
 		}
 
 		return html;
