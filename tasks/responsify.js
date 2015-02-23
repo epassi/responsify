@@ -25,20 +25,7 @@ module.exports = function ( grunt ) {
 		grunt.file.recurse("layouts/", traverseFile);
 
 		// Create image slices out of the layouts.
-<<<<<<< HEAD
-		async.each(_breakpoints, createSlices, onComplete);
-
-		// Generate the HTML file.
-		_html = getLayoutHTML();
-		_css = getLayoutCSS();
-		templateHTML = templateHTML.replace(/{{styles}}/g, _css);
-		templateHTML = templateHTML.replace(/{{maxBreakpoint}}/g, _breakpoints[_breakpoints.length-1]);
-		templateHTML = templateHTML.replace(/{{html}}/g, _html);
-		grunt.file.write("index.html", templateHTML);
-
-=======
 		async.each(Object.keys(_pages), processPage, onComplete);
->>>>>>> origin/1.2
   	});
 
 	function resetLayouts() {
@@ -47,8 +34,6 @@ module.exports = function ( grunt ) {
 		grunt.file.delete("resources/img");
 	}
 
-<<<<<<< HEAD
-=======
 	function processPage(title, callbackLayoutsComplete) {
 		var pageTemplate = _prototypeHtmlTemplate;
 		var breakpoints = _pages[title];
@@ -75,12 +60,12 @@ module.exports = function ( grunt ) {
 		);
 	}
 
->>>>>>> origin/1.2
 	function onComplete(err) {
 		writeIndexFile();
 		grunt.log.writeln("everything done");
 		done(true);
 	}
+	
 
 	function traverseFile(abspath, rootdir, subdir, filename) {
 		var layoutInfo = getLayoutInfo(filename)
