@@ -13,21 +13,22 @@
 ******************************************************************************/
 
 
-
-'use strict';
+// 'use strict';
 
 var gm = require("gm").subClass({ imageMagick: true });
 var async = require("async");
 var done;
 
 module.exports = function ( grunt ) {
+	const SLICE_COUNT = 3;
 	var _allFilepaths = [];
 	var _pages = {};
 	var _issues = [];
 	var _indexHtmlTemplate = grunt.file.read("resources/templates/index.html");
 	var _prototypeHtmlTemplate = grunt.file.read("resources/templates/prototype.html");
 	var _htmlTableRowPartial = grunt.file.read("resources/partials/index-table-row.html");
-	var _htmlLayoutDivPartial = grunt.file.read("resources/partials/prototype-layout-div.html")
+	var _htmlLayoutDivPartial = grunt.file.read("resources/partials/prototype-layout-div.html");
+	var _htmlSliceImgPartial = grunt.file.read("resources/partials/slice-img.html");
 	var _cssMediaQueryPartial = grunt.file.read("resources/partials/prototype-media-query.css");
 
 	// Please see the Grunt documentation for more information regarding task
@@ -129,26 +130,39 @@ module.exports = function ( grunt ) {
 			} else {			
 				var width = size.width;
 				var height = size.height;
-
-				var sliceCount = 3;
-				var sliceHeight = Math.ceil(height / sliceCount);
+				var pixelRatio = width / breakpoint;
+				var pixelRatioRound = Math.round(pixelRatio*100) / 100;
+				var sliceHeight = Math.ceil(height / SLICE_COUNT);
 
 				var i = 1;
 				var y = 0;
 				async.whilst(
 					function() {return y < height;},
-					function(callback) {
-						var slice = gm(abspath).crop(width, sliceHeight, 0, y);
-						var croppedFilename = "resources/img/" + getFilenameBase(filename) + "_" + i++ + ".png";
-
+					function(callback) {						
 						// Create img folder if it doesn't already exist.
 						if (!grunt.file.exists("resources/img")) {
 							grunt.file.mkdir("resources/img");
 						}
 
-						slice.quality(100).write(croppedFilename, callback);
+						// If image is high resolution,
+						// Create low and high resolution slices.
+						// Otherwise, just make a standard (low) resolution slice.
+						if (pixelRatio > 1) {
+							var sliceHiRes = gm(abspath).crop(width, sliceHeight, 0, y);
+							var sliceHiResFilepath = "resources/img/" + getFilenameBase(filename) + "x" + pixelRatioRound + "_" + i + ".png";
+							var sliceLoRes = gm(abspath).crop(width, sliceHeight, 0, y).scale(width/2, sliceHeight/2);
+							var sliceLoResFilepath = "resources/img/" + getFilenameBase(filename) + "_" + i + ".png";
+							sliceLoRes.quality(100).write(sliceLoResFilepath, function(err){});
+							sliceHiRes.quality(100).write(sliceHiResFilepath, callback);
+						} else {
+							var slice = gm(abspath).crop(width, sliceHeight, 0, y);
+							var sliceFilepath = "resources/img/" + getFilenameBase(filename) + "_" + i + ".png";
+							slice.quality(100).write(sliceFilepath, callback);
+						}
 
+						// Advance to next slice.
 						y += sliceHeight;
+						i++;
 					},
 					function(err) {
 						if (err) {
@@ -220,11 +234,50 @@ module.exports = function ( grunt ) {
 		var htmlLayoutDivs = "";
 		var filenameBase = "";
 
+		// Gather layouts.
 		for (var i = 0; i < breakpoints.length; i++) {
 			filenameBase = title + "@" + breakpoints[i];
 			htmlLayoutDivs += _htmlLayoutDivPartial;
 			htmlLayoutDivs = htmlLayoutDivs.replace(/{{breakpoint}}/g, breakpoints[i]);
-			htmlLayoutDivs = htmlLayoutDivs.replace(/{{filenameBase}}/g, filenameBase);
+
+			// Gather layout slices.
+			var htmlSliceImgs = "";
+			for (var j = 0; j < SLICE_COUNT; j++) {
+				// Get the slices for the current layout.
+				var sliceFilepathPattern = "resources/img/{{title}}@{{breakpoint}}*_{{slice}}.png";
+				sliceFilepathPattern = sliceFilepathPattern.replace(/{{title}}/g, title);
+				sliceFilepathPattern = sliceFilepathPattern.replace(/{{breakpoint}}/g, breakpoints[i]);
+				sliceFilepathPattern = sliceFilepathPattern.replace(/{{slice}}/g, j+1);
+				
+				// Get HTML parameters for slices.
+				var sliceFilepaths = grunt.file.expand(sliceFilepathPattern);
+				var hiResAvailable = sliceFilepaths.length > 1; // Multiple slices means low and high resolution files.
+				var filenameLoRes = "";
+				var filenameHiRes = "";
+				var srcset = "";
+
+				if (hiResAvailable) {
+					// Shorter filepath =  low resolution slice.
+					var filepathLoRes = sliceFilepaths[0].length < sliceFilepaths[1].length ? sliceFilepaths[0] : sliceFilepaths[1];
+					// Longer filepath = high resolution slice.
+					var filepathHiRes = sliceFilepaths[0].length > sliceFilepaths[1].length ? sliceFilepaths[0] : sliceFilepaths[1];
+					var pixelRatio = filepathHiRes.split("x").pop().split("_")[0];
+					filenameLoRes = filepathLoRes.split("/").pop();
+					filenameHiRes = filepathHiRes.split("/").pop();
+					srcset = " srcset=\"../img/{{filenameLoRes}} 1x, ../img/{{filenameHiRes}} {{pixelRatio}}x\"";
+					srcset = srcset.replace(/{{filenameLoRes}}/g, filenameLoRes);
+					srcset = srcset.replace(/{{filenameHiRes}}/g, filenameHiRes);
+					srcset = srcset.replace(/{{pixelRatio}}/g, pixelRatio);
+				} else {
+					// Just one file for low resolution scenario.
+					filenameLoRes = sliceFilepaths[0].split("/").pop();
+				}
+
+				htmlSliceImgs += _htmlSliceImgPartial;
+				htmlSliceImgs = htmlSliceImgs.replace(/{{filename}}/g, filenameLoRes);
+				htmlSliceImgs = htmlSliceImgs.replace(/{{srcset}}/g, srcset);
+			}
+			htmlLayoutDivs = htmlLayoutDivs.replace(/{{slices}}/g, htmlSliceImgs);
 		}
 
 		return htmlLayoutDivs;
