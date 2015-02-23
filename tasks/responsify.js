@@ -80,14 +80,8 @@ module.exports = function ( grunt ) {
 		}
 		done(true);
 	}
-<<<<<<< HEAD
-	
-
-	function traverseFile(abspath, rootdir, subdir, filename) {
-=======
 
 	function addToPageMap(filename) {
->>>>>>> origin/1.2.1
 		var layoutInfo = getLayoutInfo(filename)
 		if (layoutInfo) {
 			if (_pages[layoutInfo.title]) {
