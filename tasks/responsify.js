@@ -262,15 +262,15 @@ module.exports = function ( grunt ) {
 					// Longer filepath = high resolution slice.
 					var filepathHiRes = sliceFilepaths[0].length > sliceFilepaths[1].length ? sliceFilepaths[0] : sliceFilepaths[1];
 					var pixelRatio = filepathHiRes.split("x").pop().split("_")[0];
-					filenameLoRes = filepathLoRes.split("/").pop();
-					filenameHiRes = filepathHiRes.split("/").pop();
+					filenameLoRes = getValidHref(filepathLoRes.split("/").pop());
+					filenameHiRes = getValidHref(filepathHiRes.split("/").pop());
 					srcset = " srcset=\"../img/{{filenameLoRes}} 1x, ../img/{{filenameHiRes}} {{pixelRatio}}x\"";
 					srcset = srcset.replace(/{{filenameLoRes}}/g, filenameLoRes);
 					srcset = srcset.replace(/{{filenameHiRes}}/g, filenameHiRes);
 					srcset = srcset.replace(/{{pixelRatio}}/g, pixelRatio);
 				} else {
 					// Just one file for low resolution scenario.
-					filenameLoRes = sliceFilepaths[0].split("/").pop();
+					filenameLoRes = getValidHref(sliceFilepaths[0].split("/").pop());
 				}
 
 				htmlSliceImgs += _htmlSliceImgPartial;
@@ -349,6 +349,11 @@ module.exports = function ( grunt ) {
 		var filenameBase = filename.replace(filenameType, "");
 
 		return filenameBase;
+	}
+
+	function getValidHref(href) {
+		// Replace spaces with %20.
+		return href.replace(/\ /g, "%20");
 	}
 
 	function getLayoutInfo(filename) {
