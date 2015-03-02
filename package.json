@@ -1,6 +1,6 @@
 {
   "name": "responsify",
-  "version": "1.3.0",
+  "version": "1.3.2",
   "description": "Template for creating responsive pages from a set of layout comps or wireframes.",
   "repository": {
     "type": "git",
