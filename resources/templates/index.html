@@ -22,6 +22,14 @@
 		table {
 			width: 100%;
 		}
+		tbody tr:hover {
+			cursor: pointer;
+			/*background: #adf;*/
+			background: #ecf7ff;
+		}
+		tr {
+			border-bottom: 1px solid #eee;
+		}
 		th {
 			text-align: left;
 			font-size: .6em;
@@ -30,19 +38,11 @@
 			color: #666;
 		}
 		td {
-			color: #666;
+			color: #888;
 			padding: 1em;
 		}
-		tr {
-			border-bottom: 1px solid #ddd;
-		}
-		a {
+		td:first-child {
 			color: #09f;
-			text-decoration: none;
-			font-weight: normal;
-		}
-		a:hover {
-			text-decoration: underline;
 		}
 
 		@media (min-width: 37.5em) {
