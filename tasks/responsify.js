@@ -262,15 +262,15 @@ module.exports = function ( grunt ) {
 					// Longer filepath = high resolution slice.
 					var filepathHiRes = sliceFilepaths[0].length > sliceFilepaths[1].length ? sliceFilepaths[0] : sliceFilepaths[1];
 					var pixelRatio = filepathHiRes.split("x").pop().split("_")[0];
-					filenameLoRes = getValidHref(filepathLoRes.split("/").pop());
-					filenameHiRes = getValidHref(filepathHiRes.split("/").pop());
+					filenameLoRes = getValidHrefString(filepathLoRes.split("/").pop());
+					filenameHiRes = getValidHrefString(filepathHiRes.split("/").pop());
 					srcset = " srcset=\"../img/{{filenameLoRes}} 1x, ../img/{{filenameHiRes}} {{pixelRatio}}x\"";
 					srcset = srcset.replace(/{{filenameLoRes}}/g, filenameLoRes);
 					srcset = srcset.replace(/{{filenameHiRes}}/g, filenameHiRes);
 					srcset = srcset.replace(/{{pixelRatio}}/g, pixelRatio);
 				} else {
 					// Just one file for low resolution scenario.
-					filenameLoRes = getValidHref(sliceFilepaths[0].split("/").pop());
+					filenameLoRes = getValidHrefString(sliceFilepaths[0].split("/").pop());
 				}
 
 				htmlSliceImgs += _htmlSliceImgPartial;
@@ -309,6 +309,7 @@ module.exports = function ( grunt ) {
 		for (var title in _pages) {
 			var breakpoints = _pages[title];
 			var indexTableRowHtml = _htmlTableRowPartial;
+			indexTableRowHtml = indexTableRowHtml.replace(/{{page}}/g, getValidLocationString(title));
 			indexTableRowHtml = indexTableRowHtml.replace(/{{title}}/g, title);
 			indexTableRowHtml = indexTableRowHtml.replace(/{{breakpoints}}/g, breakpoints.join().replace(/\,/g, ", "));
 			indexTableRows += indexTableRowHtml;
@@ -351,9 +352,23 @@ module.exports = function ( grunt ) {
 		return filenameBase;
 	}
 
-	function getValidHref(href) {
+	// Returns a string formatted for an HTML href attribute.
+	function getValidHrefString(href) {
 		// Replace spaces with %20.
-		return href.replace(/\ /g, "%20");
+		href = href.replace(/\ /g, "%20");
+
+		return href;
+	}
+
+	// Returns a string formatted for a window.document.location.
+	function getValidLocationString(href) {
+		// Replace spaces with %20.
+		href = href.replace(/\ /g, "%20");
+
+		// Escape single quotes, so that quote isn't interpretted as end-of-string delimitter.
+		href = href.replace(/'/g, "\\'");
+
+		return href;
 	}
 
 	function getLayoutInfo(filename) {
